@@ -5,9 +5,16 @@ import shutil
 from pydantic import BaseModel
 import uuid
 from PIL import Image
+import firebase_admin
+from firebase_admin import credentials,firestore
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google_key.json"
+
+firebase_admin.initialize_app(credentials.Certificate('serviceAccountCredentials.json'))
+db = firestore.client()
+
 app = FastAPI()
+
 storage_client = storage.Client()
 bucket_name ="storage_image_api"
 bucket = storage_client.get_bucket(bucket_name)
@@ -28,11 +35,15 @@ async def upload(userId,image: UploadFile = File(...)):
         id = uuid.uuid4()
         filename = str(id)+".jpg"
         os.rename(str(buffer.name),filename)
-        word = "car/"
-        blob = bucket.blob(word+filename)
+        word = "car"
+        blob = bucket.blob(word+'/'+filename)
         blob.upload_from_filename(filename)
-        uri = 'gs://storage_image_api'+ word + filename
-        message = {'uri':uri,'word':word,'userId':userId}
+        uri = 'gs://storage_image_api/'+ word + '/' + filename
+        print(uri)
+        dest = db.collection('metadata').document(str(id))
+        json = {"uri":uri,"word":word,"userId":userId,"status":"False"}
+        dest.set(json)
+        message = {'id':id}
         message = str(message)
         message = message.encode('utf-8')
         publisher.publish(topic_path,message)
