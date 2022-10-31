@@ -25,28 +25,24 @@ topic_path ="projects/third-essence-365119/topics/test-pubsub"
 class MetaData(BaseModel):
     userId:str
 
-@app.post('/upload/{userId}')
+@app.post('/v1/upload/{userId}')
 async def upload(userId,image: UploadFile = File(...)):
     with open(image.filename, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
     img = Image.open(str(buffer.name))
     if(img.format == "JPEG" or img.format == "PNG"):
         img.close()
-        id = uuid.uuid4()
-        filename = str(id)+".jpg"
+        id = str(uuid.uuid4())
+        filename = id +".jpg"
         os.rename(str(buffer.name),filename)
         word = "car"
         blob = bucket.blob(word+'/'+filename)
         blob.upload_from_filename(filename)
         uri = 'gs://storage_image_api/'+ word + '/' + filename
-        print(uri)
-        dest = db.collection('metadata').document(str(id))
-        json = {"uri":uri,"word":word,"userId":userId,"status":"False"}
-        dest.set(json)
-        message = {'id':id}
-        message = str(message)
-        message = message.encode('utf-8')
-        publisher.publish(topic_path,message)
+        dest = db.collection('metadata').document(id)
+        dest.set({"uri":uri,"word":word,"userId":userId,"status":"False"})
+        id = id.encode('utf-8')
+        publisher.publish(topic_path,id)
         os.remove(filename)
         return 200
     else:
