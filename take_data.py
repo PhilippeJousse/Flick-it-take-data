@@ -1,14 +1,25 @@
 from fastapi import FastAPI, UploadFile, File
 from google.cloud import storage,pubsub_v1
-import os,datetime, shutil, uuid, firebase_admin
+import os,datetime, shutil, uuid, pyrebase,json
 from pydantic import BaseModel
-from firebase_admin import credentials,firestore
 from PIL import Image
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google_key.json"
 
-firebase_admin.initialize_app(credentials.Certificate('serviceAccountCredentials.json'))
-db = firestore.client()
+firebaseConfig = {
+  "apiKey": "AIzaSyBnz6wws3EjTRnFOG7NvefKSr9CsaOlcxY",
+  "authDomain": "flick-it-users-storage.firebaseapp.com",
+  "databaseURL": "https://flick-it-users-storage-default-rtdb.europe-west1.firebasedatabase.app",
+  "projectId": "flick-it-users-storage",
+  "storageBucket": "flick-it-users-storage.appspot.com",
+  "messagingSenderId": "1046722019798",
+  "appId": "1:1046722019798:web:905b021820e1922f95a477",
+  "measurementId": "G-J3T9K8WPV2",
+  "serviceAccount": "serviceAccountCredentials.json"
+}
+firebase = pyrebase.initialize_app(firebaseConfig)
+
+db = firebase.database()
 
 app = FastAPI()
 
@@ -17,8 +28,7 @@ bucket_name ="storage_image_api"
 bucket = storage_client.get_bucket(bucket_name)
 
 publisher = pubsub_v1.PublisherClient()
-topic_path ="projects/third-essence-365119/topics/launch-vision"
-
+topic_path_Vision = "projects/third-essence-365119/topics/launch-vision"
 class MetaData(BaseModel):
     userId:str
 
@@ -32,23 +42,22 @@ async def upload(userId,image: UploadFile = File(...)):
         id = str(uuid.uuid4())
         filename = id +".jpg"
         os.rename(str(buffer.name),filename)
-        word = "car"
 
-        blob = bucket.blob(word+'/'+filename)
+        blob = bucket.blob(filename)
         blob.upload_from_filename(filename)
 
-        uri = 'gs://storage_image_api/'+ word + '/' + filename
+        uri = 'gs://storage_image_api/' + filename
 
         timeUTC = datetime.datetime.utcnow()
         timeUTC = timeUTC.strftime("%H%M%S")
 
-        point = 500
-
-        dest = db.collection('metadata').document(id)
-        dest.set({"uri":uri, "timeUTC":timeUTC,"word":word,"point":point,"userId":userId,"status":"False"})
+        word = db.child("word").get()
+        word = json.loads(json.dumps(word.val()))
+        print(word)
+        db.child("metadata").child(id).set({"uri":uri, "timeUTC":timeUTC,"word":word["word"],"point":word["point"],"userId":userId,"status":"False"})
 
         id = id.encode('utf-8')
-        publisher.publish(topic_path,id)
+        publisher.publish(topic_path_Vision,id)
         os.remove(filename)
         return 200
     else:
