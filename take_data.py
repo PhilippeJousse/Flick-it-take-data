@@ -53,7 +53,6 @@ async def upload(userId,image: UploadFile = File(...)):
 
         word = db.child("word").get()
         word = json.loads(json.dumps(word.val()))
-        print(word)
         db.child("metadata").child(id).set({"uri":uri, "timeUTC":timeUTC,"word":word["word"],"point":word["point"],"userId":userId,"status":"False"})
 
         id = id.encode('utf-8')
