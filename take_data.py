@@ -17,11 +17,11 @@ db = firebase.database()
 app = FastAPI()
 
 storage_client = storage.Client()
-bucket_name ="storage_image_api"
+bucket_name ="flick-it-image"
 bucket = storage_client.get_bucket(bucket_name)
 
 publisher = pubsub_v1.PublisherClient()
-topic_path_Vision = "projects/third-essence-365119/topics/launch-vision"
+topic_path_Vision = "projects/flick-it-373707/topics/launch-vision"
 class MetaData(BaseModel):
     userId:str
 
@@ -39,7 +39,7 @@ async def upload(userId,image: UploadFile = File(...)):
         blob = bucket.blob(filename)
         blob.upload_from_filename(filename)
 
-        uri = 'gs://storage_image_api/' + filename
+        uri = 'gs://flick-it-image/' + filename
 
         timeUTC = datetime.datetime.utcnow()
         timeUTC = timeUTC.strftime("%H%M%S")
