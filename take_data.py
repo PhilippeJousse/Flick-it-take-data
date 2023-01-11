@@ -4,7 +4,7 @@ import os,datetime, shutil, uuid, pyrebase,json
 from pydantic import BaseModel
 from PIL import Image
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google_key.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "serviceAccountCredentials.json"
 
 with open('firebaseConfig.json') as f:
     firebaseConfig = f.read()
